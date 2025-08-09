@@ -22,26 +22,74 @@ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSE
 WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#ifndef ROBOTEQ_CHANNEL
-#define ROBOTEQ_CHANNEL
+#ifndef ROBOTEQ_DRIVER_CHANNEL_H
+#define ROBOTEQ_DRIVER_CHANNEL_H
 
 #include "ros/ros.h"
 
-namespace roboteq_msgs {
-  ROS_DECLARE_MESSAGE(Command);
-  ROS_DECLARE_MESSAGE(Feedback);
+#include <string>
+#include <vector>
+
+namespace roboteq_msgs
+{
+ROS_DECLARE_MESSAGE(Command);
+ROS_DECLARE_MESSAGE(Feedback);
 }
 
-namespace roboteq {
+namespace roboteq
+{
 
 class Controller;
 
-class Channel {
+class Channel
+{
 public:
   Channel(int channel_num, std::string ns, Controller* controller);
   void feedbackCallback(std::vector<std::string>);
 
 protected:
+  /**
+   * @param x Angular velocity in radians/s.
+   * @return Angular velocity in RPM.
+   */
+  static double to_rpm(double x)
+  {
+    return x * 60 / (2 * M_PI);
+  }
+
+  /**
+   * @param x Angular velocity in RPM.
+   * @return Angular velocity in rad/s.
+   */
+  static double from_rpm(double x)
+  {
+    return x * (2 * M_PI) / 60;
+  }
+
+  /**
+   * Conversion of radians to encoder ticks. Note that this assumes a
+   * 1024-line quadrature encoder (hence 4096).
+   *
+   * @param x Angular position in radians.
+   * @return Angular position in encoder ticks.
+   */
+  static double to_encoder_ticks(double x)
+  {
+    return x * 4096 / (2 * M_PI);
+  }
+
+  /**
+   * Conversion of encoder ticks to radians. Note that this assumes a
+   * 1024-line quadrature encoder (hence 4096).
+   *
+   * @param x Angular position in encoder ticks.
+   * @return Angular position in radians.
+   */
+  static double from_encoder_ticks(double x)
+  {
+    return x * (2 * M_PI) / 4096;
+  }
+
   void cmdCallback(const roboteq_msgs::Command&);
   void timerCallback(const ros::TimerEvent&);
 
@@ -55,8 +103,9 @@ protected:
   ros::Timer timer_init_;
 
   ros::Time last_feedback_time_;
+  uint8_t last_mode_;
 };
 
-}
+}  // namespace roboteq
 
-#endif
+#endif  // ROBOTEQ_DRIVER_CHANNEL_H
